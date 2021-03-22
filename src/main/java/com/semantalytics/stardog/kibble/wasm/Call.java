@@ -40,6 +40,8 @@ import static java.util.stream.Collectors.*;
 
 public class Call extends AbstractExpression implements UserDefinedFunction {
 
+    private int memorySize = 1;
+
     /* NOTES
     function to get docs wasm:doc?
     support ipfs:// functions
@@ -114,8 +116,14 @@ public class Call extends AbstractExpression implements UserDefinedFunction {
 
                 Memory memory = instance.exports.getMemory("memory");
                 ByteBuffer memoryBuffer = memory.buffer();
+                byte[] input = byteArrayOutputStream.toByteArray();
+                int pages = (int)Math.ceil(input.length / 64.0);
+                if(pages > memorySize) {
+                    memory.grow(pages - memorySize);
+                    memorySize = pages;
+                }
                 memoryBuffer.position(input_pointer);
-                memoryBuffer.put(byteArrayOutputStream.toByteArray());
+                memoryBuffer.put(input);
 
                 final Integer output_pointer = (Integer) instance.exports.getFunction("internalEvaluate").apply(input_pointer)[0];
 
